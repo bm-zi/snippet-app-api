@@ -1,4 +1,4 @@
-from django.db import models, connection
+from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -62,20 +62,9 @@ class Snippet(models.Model):
     created = models.DateTimeField(editable=False)
     modified = models.DateTimeField(blank=True)
     is_favorite = models.BooleanField(default=True)
-
-    def get_latest_id(self):
-        try:
-            query = 'SELECT * FROM core_snippet'
-            cursor = connection.cursor()
-            cursor.execute(query)
-            row_no = len(cursor.fetchall()) + 1
-            return str(row_no)
-        except Exception:
-            return str('1')
+    tags = models.ManyToManyField('Tag')
 
     def save(self, *args, **kwargs):
-        if not self.title:
-            self.title = f"Snippet No. {self.get_latest_id()}"
         if not self.id:
             self.created = timezone.now()
         self.modified = timezone.now()
@@ -84,3 +73,15 @@ class Snippet(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Tag(models.Model):
+    """Tag for filtering snippets."""
+    name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return self.name
