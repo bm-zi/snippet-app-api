@@ -3,7 +3,7 @@ Serializer for snippet API
 """
 
 from rest_framework import serializers
-from core.models import Snippet
+from core.models import Snippet, Tag
 
 
 class SnippetSerializer(serializers.ModelSerializer):
@@ -23,3 +23,12 @@ class SnippetDetailSerializer(SnippetSerializer):
             'linenos', 'style', 'created',
             'modified', 'is_favorite',
         ]
+
+
+class TagSerializer(serializers.ModelSerializer):
+    """Serializer for tags."""
+
+    class Meta:
+        model = Tag
+        fields = ['id', 'name']
+        read_only_fields = ['id']

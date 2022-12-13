@@ -9,6 +9,7 @@ from snippet import views
 
 router = DefaultRouter()
 router.register('snippets', views.SnippetViewSet)
+router.register('tags', views.TagViewSet)
 
 app_name = 'snippet'
 
