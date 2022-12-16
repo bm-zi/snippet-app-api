@@ -9,7 +9,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from core.models import Snippet
+from core.models import Snippet, Tag
 
 from snippet.serializers import (
     SnippetSerializer,
@@ -173,7 +173,7 @@ class PrivateSnippetApiTests(TestCase):
         self.assertEqual(snippet.user, self.user)
 
     def test_delete_snippet(self):
-        """Test deleting a recipe is successful."""
+        """Test deleting a snippet is successful."""
         snippet = create_snippet(user=self.user)
 
         url = detail_url(snippet.id)
@@ -192,3 +192,53 @@ class PrivateSnippetApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Snippet.objects.filter(id=snippet.id).exists())
+
+    def test_create_snippet_with_new_tags(self):
+        """Test creating snippet with a new tags."""
+        payload = {
+            'title': "sample snippet with new tag",
+            'linenos': True,
+            'language': 'ada',
+            'style': 'friendly',
+            'is_favorite': True,
+            'tags': [{'name': 'web scraping'}, {'name': 'web crawling'}],
+        }
+        res = self.client.post(SNIPPETS_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        snippets = Snippet.objects.filter(user=self.user)
+        self.assertEqual(snippets.count(), 1)
+        snippet = snippets[0]
+        self.assertEqual(snippet.tags.count(), 2)
+        for tag in payload['tags']:
+            exists = snippet.tags.filter(
+                name=tag['name'],
+                user=self.user,
+            ).exists()
+            self.assertTrue(exists)
+
+    def test_create_snippet_with_existing_tags(self):
+        """Test creating a snippet with existing tag."""
+        tag_orm = Tag.objects.create(user=self.user, name='orm')
+        payload = {
+            'title': "sample snippet with existing tags",
+            'linenos': False,
+            'language': 'python',
+            'style': 'default',
+            'is_favorite': False,
+            'tags': [{'name': 'databse'}, {'name': 'orm'}],
+        }
+        res = self.client.post(SNIPPETS_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        snippets = Snippet.objects.filter(user=self.user)
+        self.assertEqual(snippets.count(), 1)
+        snippet = snippets[0]
+        self.assertEqual(snippet.tags.count(), 2)
+        self.assertIn(tag_orm, snippet.tags.all())
+        for tag in payload['tags']:
+            exists = snippet.tags.filter(
+                name=tag['name'],
+                user=self.user,
+            ).exists()
+            self.assertTrue(exists)
