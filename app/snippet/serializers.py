@@ -3,7 +3,10 @@ Serializer for snippet API
 """
 
 from rest_framework import serializers
-from core.models import Snippet, Tag
+from core.models import (
+    Snippet,
+    Tag,
+)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -34,10 +37,11 @@ class SnippetDetailSerializer(SnippetSerializer):
             'modified', 'is_favorite',
         ]
 
-    def create(self, validated_data):
-        """Create a snippet"""
-        tags = validated_data.pop('tags', [])   # ['tag1', 'tag2']
-        snippet = Snippet.objects.create(**validated_data)
+    def _get_or_create_tags(self, tags, snippet):
+        """
+        Handle adding tags to a given snippet while
+        creating or updating that snippet.
+        """
         auth_user = self.context['request'].user
         for tag in tags:
             tag_obj, created = Tag.objects.get_or_create(
@@ -46,4 +50,23 @@ class SnippetDetailSerializer(SnippetSerializer):
             )
             snippet.tags.add(tag_obj)
 
+    def create(self, validated_data):
+        """Create a snippet"""
+        tags = validated_data.pop('tags', [])   # ['tag1', 'tag2']
+        snippet = Snippet.objects.create(**validated_data)
+        self._get_or_create_tags(tags, snippet)
+
         return snippet
+
+    def update(self, instance, validated_data):
+        """Update a snippet."""
+        tags = validated_data.pop('tags', None)
+        if tags is not None:
+            instance.tags.clear()
+            self._get_or_create_tags(tags, instance)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance

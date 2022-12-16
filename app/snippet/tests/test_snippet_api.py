@@ -242,3 +242,43 @@ class PrivateSnippetApiTests(TestCase):
                 user=self.user,
             ).exists()
             self.assertTrue(exists)
+
+    def test_create_tag_on_update(self):
+        """Test create tag when updating a snippet."""
+        snippet = create_snippet(user=self.user)
+
+        payload = {'tags': [{'name': 'web surfing'}]}
+        url = detail_url(snippet.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        new_tag = Tag.objects.get(user=self.user, name='web surfing')
+        self.assertIn(new_tag, snippet.tags.all())
+
+    def test_update_snippet_assign_tag(self):
+        """Test assigning an existing tag when updating a snippet."""
+        tag_OOP = Tag.objects.create(user=self.user, name='OOP')
+        snippet = create_snippet(user=self.user)
+        snippet.tags.add(tag_OOP)
+
+        tag_RDBS = Tag.objects.create(user=self.user, name='RDBS')
+        payload = {'tags': [{'name': 'RDBS'}]}
+        url = detail_url(snippet.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(tag_RDBS, snippet.tags.all())
+        self.assertNotIn(tag_OOP, snippet.tags.all())
+
+    def test_clear_snippet_tags(self):
+        """Test clearing a snippet's tag"""
+        tag = Tag.objects.create(user=self.user, name='RESTful')
+        snippet = create_snippet(user=self.user)
+        snippet.tags.add(tag)
+
+        payload = {'tags': []}
+        url = detail_url(snippet.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(snippet.tags.count(), 0)
