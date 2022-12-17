@@ -47,6 +47,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
 
+class Tag(models.Model):
+    """Tag for filtering snippets."""
+    name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return self.name
+
+
 class Snippet(models.Model):
     """Snippet object"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -62,7 +74,7 @@ class Snippet(models.Model):
     created = models.DateTimeField(editable=False)
     modified = models.DateTimeField(blank=True)
     is_favorite = models.BooleanField(default=True)
-    tags = models.ManyToManyField('Tag')
+    tags = models.ManyToManyField(Tag)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -73,15 +85,3 @@ class Snippet(models.Model):
 
     def __str__(self):
         return self.title
-
-
-class Tag(models.Model):
-    """Tag for filtering snippets."""
-    name = models.CharField(max_length=255)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
-
-    def __str__(self):
-        return self.name
