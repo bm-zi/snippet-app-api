@@ -1,6 +1,7 @@
 """
 Views for the snippet APIs
 """
+
 from django.db import connection
 from rest_framework import viewsets, mixins
 from rest_framework.authentication import TokenAuthentication
