@@ -61,9 +61,6 @@ class ModelTests(TestCase):
         snippet = models.Snippet.objects.create(
             user=user,
             title='Sample snippet name',
-            linenos=False,
-            language='python',
-            style='friendly',
             is_favorite=True,
         )
         self.assertEqual(str(snippet), snippet.title)
@@ -73,3 +70,39 @@ class ModelTests(TestCase):
         user = create_user()
         tag = models.Tag.objects.create(user=user, name="Tag1")
         self.assertEqual(str(tag), tag.name)
+
+    def test_create_language_object(self):
+        user = create_user()
+        language = models.Language.objects.create(
+            user=user,
+            name='java',
+            style='default',
+            linenos=False,
+        )
+        self.assertEqual(str(language), language.name)
+
+    def test_create_snippet_with_source(self):
+        """Test creating a snippet with source and language."""
+        user = create_user()
+        language = models.Language.objects.create(
+            user=user,
+            name='java',
+            style='friendly',
+            linenos=True,
+        )
+        self.assertEqual(str(language), language.name)
+        source = models.Source.objects.create(
+            user=user,
+            code='code body content',
+            description='description about using this source code',
+            link='http://www.examplecom/source_code_sample',
+            language=language,
+        )
+        self.assertEqual(str(source), source.description)
+        snippet = models.Snippet.objects.create(
+            user=user,
+            title='Sample snippet with source code',
+            is_favorite=True,
+            source=source,
+        )
+        self.assertEqual(str(snippet), snippet.title)

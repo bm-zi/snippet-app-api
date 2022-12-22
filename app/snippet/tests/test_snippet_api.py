@@ -29,10 +29,7 @@ def detail_url(snippet_id):
 def create_snippet(user, **params):
     """Create and return a sample snippet"""
     defaults = {
-        'title': 'Some title',
-        'linenos': False,
-        'language': 'java',
-        'style': 'friendly',
+        'title': 'Sample title',
         'is_favorite': True,
     }
     defaults.update(params)
@@ -102,9 +99,6 @@ class PrivateSnippetApiTests(TestCase):
         """Test creating a snippet."""
         payload = {
             "title": "",
-            "linenos": False,
-            "language": "go",
-            "style": "colorful",
             "is_favorite": False
         }
         res = self.client.post(SNIPPETS_URL, payload)
@@ -119,11 +113,10 @@ class PrivateSnippetApiTests(TestCase):
 
     def test_partial_update(self):
         """Test partial update of a snippet"""
-        original_style = "colorful"
+
         snippet = create_snippet(
             user=self.user,
             title='Sample snippet title',
-            style=original_style,
         )
 
         payload = {'title': 'New Snippet title'}
@@ -133,7 +126,7 @@ class PrivateSnippetApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         snippet.refresh_from_db()
         self.assertEqual(snippet.title, payload['title'])
-        self.assertEqual(snippet.style, original_style)
+
         self.assertEqual(snippet.user, self.user)
 
     def test_full_update(self):
@@ -141,13 +134,9 @@ class PrivateSnippetApiTests(TestCase):
         snippet = create_snippet(
             user=self.user,
             title="original snippet title",
-            language='go',
         )
         payload = {
             'title': "modified snippet title",
-            'linenos': False,
-            'language': 'java',
-            'style': 'default',
             'is_favorite': False
         }
 
@@ -197,9 +186,6 @@ class PrivateSnippetApiTests(TestCase):
         """Test creating snippet with a new tags."""
         payload = {
             'title': "sample snippet with new tag",
-            'linenos': True,
-            'language': 'ada',
-            'style': 'friendly',
             'is_favorite': True,
             'tags': [{'name': 'web scraping'}, {'name': 'web crawling'}],
         }
@@ -222,9 +208,6 @@ class PrivateSnippetApiTests(TestCase):
         tag_orm = Tag.objects.create(user=self.user, name='orm')
         payload = {
             'title': "sample snippet with existing tags",
-            'linenos': False,
-            'language': 'python',
-            'style': 'default',
             'is_favorite': False,
             'tags': [{'name': 'databse'}, {'name': 'orm'}],
         }
@@ -282,3 +265,47 @@ class PrivateSnippetApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(snippet.tags.count(), 0)
+
+    def test_create_snippet_with_no_title(self):
+        """Testing creating snippet when title is empty"""
+        snippet = Snippet.objects.create(
+            user=self.user,
+            is_favorite=True,
+        )
+        url = detail_url(snippet.id)
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['title'], snippet.title)
+
+    def test_updating_snippet_with_empty_title(self):
+        """Test updating an snippet with empty title"""
+        snippet = create_snippet(user=self.user)
+        payload = {
+            'user': self.user,
+            'title': '',
+        }
+
+        url = detail_url(snippet.id)
+        res = self.client.put(url, payload)
+        snippet.refresh_from_db()
+        snippet = Snippet.objects.get(id=snippet.id)
+        self.assertEqual(res.data['title'], snippet.title)
+
+        snippet2 = create_snippet(user=self.user, title='snippet2')
+        payload = {'title': '', 'is_favorite': True}
+        url = detail_url(snippet2.id)
+        res = self.client.patch(url, payload, format='json')
+        snippet2.refresh_from_db()
+        self.assertEqual(res.data['title'], snippet2.title)
+
+    def test_creating_multiple_snippets_with_no_title(self):
+        """Test creating multiple snippets with no title"""
+        snippet3 = create_snippet(user=self.user, title='')
+        test_string = snippet3.title
+        no = [int(i) for i in test_string.split() if i.isdigit()][0]
+
+        snippet4 = create_snippet(user=self.user, title='')
+        self.assertEqual(snippet4.title, f'Snippet no {no+1}')
+
+        snippet5 = create_snippet(user=self.user, title='')
+        self.assertEqual(snippet5.title, f'Snippet no {no+2}')
