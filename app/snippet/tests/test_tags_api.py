@@ -45,7 +45,7 @@ class PrivateTagsApiTest(TestCase):
         self.client.force_authenticate(self.user)
 
     def test_retrieve_tags(self):
-        """Test retrieving alist of tags."""
+        """Test retrieving a list of tags."""
         Tag.objects.create(user=self.user, name='web scraping')
         Tag.objects.create(user=self.user, name='web spidering')
 

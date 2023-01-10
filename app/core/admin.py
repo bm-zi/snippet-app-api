@@ -47,5 +47,4 @@ class UserAdmin(BaseUserAdmin):
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Snippet)
 admin.site.register(models.Tag)
-admin.site.register(models.Language)
-admin.site.register(models.Source)
+admin.site.register(models.SourceCode)

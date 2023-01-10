@@ -1,6 +1,8 @@
 """
 Serializers for the user API View.
 """
+
+# from core.models import User
 from django.contrib.auth import (
     get_user_model,
     authenticate,
@@ -13,7 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer for the user object."""
     class Meta:
         model = get_user_model()
-        fields = ['email', 'password', 'name']
+        # fields = ['id', 'email', 'password', 'name']
+        fields = '__all__'
         extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}
 
     def create(self, validated_data):

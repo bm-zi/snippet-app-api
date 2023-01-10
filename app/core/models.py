@@ -43,45 +43,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
 
-class Language(models.Model):
-    """Language type for snippets."""
-
-    LEXERS = [item for item in get_all_lexers() if item[1]]
-    LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
-    STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
-    name = models.CharField(
-        choices=LANGUAGE_CHOICES,
-        default='python',
-        max_length=100,
-        blank=True
-    )
-    style = models.CharField(
-        choices=STYLE_CHOICES,
-        default='friendly',
-        max_length=100,
-        blank=True
-    )
-    linenos = models.BooleanField(default=False)
-
-    def save(self, *args, **kwargs):
-        lang_choice = self.name
-        style_choice = self.style
-        if not any(lang_choice in _tuple for _tuple in self.LANGUAGE_CHOICES):
-            raise ValueError('Language not set correctly')
-        if not any(style_choice in _tuple for _tuple in self.STYLE_CHOICES):
-            raise ValueError('Style not set correctly')
-
-        super(Language, self).save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name
-
-
 class Tag(models.Model):
     """Tag for filtering snippets."""
     user = models.ForeignKey(
@@ -94,20 +55,36 @@ class Tag(models.Model):
         return self.name
 
 
-class Source(models.Model):
-    """Source for snippets"""
+class SourceCode(models.Model):
+    """Model to store detailed information for snippet source code."""
+
+    todo_statuses = (
+        ('C', 'Checked'),
+        ('U', 'Unchecked')
+    )
+
+    rating_choices = (
+        (1, 'poor'),
+        (2, 'Fair'),
+        (3, 'Good'),
+        (4, 'Very Good'),
+        (5, 'Excellent')
+    )
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
-    code = models.TextField()
-    language = models.ForeignKey(
-        Language,
-        null=True,
-        on_delete=models.RESTRICT,
-    )
-    description = models.TextField()
-    link = models.URLField(max_length=255)
+
+    title = models.CharField(max_length=255)
+    author = models.CharField(max_length=255, blank=True)
+    code = models.TextField(unique=True)
+    notes = models.TextField(blank=True)
+    url = models.URLField(max_length=255, blank=True)
+    status = models.CharField(max_length=1, choices=todo_statuses, default='U', blank=True)
+    rating = models.PositiveIntegerField(choices=rating_choices, default=3, blank=True)
+    is_favorite = models.BooleanField(default=True)
+    count_updated = models.PositiveIntegerField(default=0, blank=True)
     created = models.DateTimeField(blank=True)
     modified = models.DateTimeField(blank=True)
 
@@ -115,31 +92,54 @@ class Source(models.Model):
         if not self.id:
             self.created = timezone.now()
         self.modified = timezone.now()
-        super(Source, self).save(*args, **kwargs)
+
+        self.count_updated = self.count_updated + 1
+        super(SourceCode, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.description
+        return self.title
 
 
 class Snippet(models.Model):
-    """Snippet object"""
+    """Model to stores snippets with various styles in html format."""
+
+    LEXERS = [item for item in get_all_lexers() if item[1]]
+    LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
+    STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
-    title = models.CharField(max_length=255, blank=True)
-    is_favorite = models.BooleanField(default=True)
-    tags = models.ManyToManyField(Tag)
-    source = models.OneToOneField(
-        Source,
-        on_delete=models.CASCADE,
+    language_name = models.CharField(
+        choices=LANGUAGE_CHOICES,
+        default='python',
+        max_length=100,
     )
+    style = models.CharField(
+        choices=STYLE_CHOICES,
+        default='friendly',
+        max_length=100,
+    )
+    linenos = models.BooleanField(default=False)
+    highlighted = models.TextField(blank=True)
+    source_code = models.OneToOneField(
+        SourceCode,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True
+    )
+    tags = models.ManyToManyField(Tag, blank=True)
 
     def save(self, *args, **kwargs):
-        count = Snippet.objects.all().count() + 1
-        if not self.title:
-            self.title = f"Snippet no {count}"
+        lang_choice = self.language_name
+        style_choice = self.style
+        if not any(lang_choice in _tuple for _tuple in self.LANGUAGE_CHOICES):
+            raise ValueError('Language not set correctly')
+        if not any(style_choice in _tuple for _tuple in self.STYLE_CHOICES):
+            raise ValueError('Style not set correctly')
+
         super(Snippet, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.title
+        return f"Snippet {self.id}"
