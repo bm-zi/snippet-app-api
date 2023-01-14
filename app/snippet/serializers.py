@@ -24,21 +24,26 @@ class SourceCodeSerializer(serializers.ModelSerializer):
             'status', 'rating', 'is_favorite', 'count_updated',
             'created', 'modified',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'created', 'modified']
 
 
-class SourceCodeTitleSerializer(SourceCodeSerializer):
+class SourceCodeBriefSerializer(SourceCodeSerializer):
     """Serializer for source code title"""
 
-    code_summary = serializers.SerializerMethodField()
+    code_content_summary = serializers.SerializerMethodField()
+    related_snippet_id = serializers.SerializerMethodField()
 
-    def get_code_summary(self, obj):
-        if len(obj.code) > 60:
-            return obj.code[:60] + " ..."
+    def get_code_content_summary(self, obj):
+        if len(obj.code) > 50:
+            return obj.code[:50] + " ..."
         return obj.code
 
+    def get_related_snippet_id(self, obj):
+        return Snippet.objects.filter(source_code__id=obj.id).first().id
+
     class Meta(SourceCodeSerializer.Meta):
-        fields = ['id', 'title', 'code_summary']
+        fields = ['id', 'title', 'code_content_summary', 'related_snippet_id']
+        read_only_fields = ['id', 'related_snippet_id']
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -53,13 +58,13 @@ class TagSerializer(serializers.ModelSerializer):
 class SnippetSerializer(serializers.ModelSerializer):
     """Serializer for snippets"""
     tags = TagSerializer(many=True, required=False)
-    source_code = SourceCodeTitleSerializer(required=False)
+    source_code = SourceCodeBriefSerializer(required=False)
 
     class Meta:
         model = Snippet
         fields = [
-            'id', 'source_code', 'tags', 'language_name',
-            'style', 'linenos',
+            'id', 'language_name', 'style',
+            'tags', 'linenos', 'source_code',
         ]
         read_only_fields = ['id']
 
@@ -150,12 +155,12 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
             return f"snippet no {row_no+1}"
         except Exception:
             return str('snippet no 1')
-    
+
     def _create_highlighted(self, source_code_dict):
         """Creates a highlighted snippet"""
 
-        self.title = self.validated_data['source_code']['title']
-        self.code = self.validated_data['source_code']['code']
+        self.title = source_code_dict['title']
+        self.code = source_code_dict['code']
         self.language_name = self.validated_data['language_name']
         self.style = self.validated_data['style']
         self.linenos = self.validated_data['linenos']

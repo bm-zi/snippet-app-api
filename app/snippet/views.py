@@ -110,6 +110,6 @@ class SourceCodeViewSet(mixins.RetrieveModelMixin,
     def get_serializer_class(self):
         """Return the serializer class for request."""
         if self.action == 'list':
-            return serializers.SourceCodeTitleSerializer
+            return serializers.SourceCodeBriefSerializer
 
         return self.serializer_class

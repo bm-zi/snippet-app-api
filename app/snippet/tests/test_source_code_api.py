@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from core.models import SourceCode
 # from snippet.serializers import SourceCodeSerializer
-from snippet.serializers import SourceCodeTitleSerializer
+from snippet.serializers import SourceCodeBriefSerializer
 
 
 SOURCE_CODE_URL = reverse('snippet:sourcecode-list')
@@ -74,7 +74,7 @@ class PrivateSourceApiTests(TestCase):
         res = self.client.get(SOURCE_CODE_URL)
 
         source_codes = SourceCode.objects.all().order_by('-id')
-        serializer = SourceCodeTitleSerializer(source_codes, many=True)
+        serializer = SourceCodeBriefSerializer(source_codes, many=True)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
