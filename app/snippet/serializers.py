@@ -10,12 +10,15 @@ from rest_framework import serializers
 from core.models import (
     Snippet,
     Tag,
-    SourceCode,
+    SourceCode
 )
 
 
 class SourceCodeSerializer(serializers.ModelSerializer):
-    """Serializer for source code."""
+    """Serializer for source code details."""
+    # title = serializers.CharField(default="Title not set!")
+    notes = serializers.CharField(allow_null=True)
+    url = serializers.URLField(allow_null=True)
 
     class Meta:
         model = SourceCode
@@ -24,26 +27,32 @@ class SourceCodeSerializer(serializers.ModelSerializer):
             'status', 'rating', 'is_favorite', 'count_updated',
             'created', 'modified',
         ]
-        read_only_fields = ['id', 'created', 'modified']
+        read_only_fields = [
+            'id', 'count_updated', 'created', 'modified'
+            ]
 
 
-class SourceCodeBriefSerializer(SourceCodeSerializer):
-    """Serializer for source code title"""
+class SourceCodeBriefSerializer(serializers.ModelSerializer):
+    """Serializer displsys source codes in brief"""
 
-    code_content_summary = serializers.SerializerMethodField()
-    related_snippet_id = serializers.SerializerMethodField()
+    code_summary = serializers.SerializerMethodField()
+    snippet_id = serializers.SerializerMethodField()
 
-    def get_code_content_summary(self, obj):
+    def get_code_summary(self, obj):
         if len(obj.code) > 50:
             return obj.code[:50] + " ..."
         return obj.code
 
-    def get_related_snippet_id(self, obj):
-        return Snippet.objects.filter(source_code__id=obj.id).first().id
+    def get_snippet_id(self, obj):
+        snippet = Snippet.objects.filter(source_code__id=obj.id).first()
+        if snippet:
+            return snippet.id
+        return
 
-    class Meta(SourceCodeSerializer.Meta):
-        fields = ['id', 'title', 'code_content_summary', 'related_snippet_id']
-        read_only_fields = ['id', 'related_snippet_id']
+    class Meta:
+        model = SourceCode
+        fields = ['id', 'title', 'code_summary', 'snippet_id']
+        read_only_fields = ['id']
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -57,30 +66,32 @@ class TagSerializer(serializers.ModelSerializer):
 
 class SnippetSerializer(serializers.ModelSerializer):
     """Serializer for snippets"""
-    tags = TagSerializer(many=True, required=False)
-    source_code = SourceCodeBriefSerializer(required=False)
+
+    source_code = SourceCodeBriefSerializer()
 
     class Meta:
         model = Snippet
-        fields = [
-            'id', 'language_name', 'style',
-            'tags', 'linenos', 'source_code',
-        ]
-        read_only_fields = ['id']
+        fields = ['language_name', 'source_code']
 
 
 class SnippetDetailSerializer(serializers.ModelSerializer):
     """Serializer for snippet detail view."""
+    # current_user = serializers.SerializerMethodField('_user')
+
+    language_name = serializers.CharField(default='python')
+    style = serializers.CharField(default='default')
+    linenos = serializers.BooleanField(default=False)
+
     tags = TagSerializer(many=True, required=False)
     source_code = SourceCodeSerializer(required=False)
 
     class Meta:
         model = Snippet
         fields = [
-            'id', 'source_code', 'tags', 'language_name',
-            'style', 'linenos', 'highlighted',
+            'id', 'language_name', 'style', 'linenos',
+            'highlighted', 'tags', 'source_code',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'highlighted']
 
     def _get_or_create_tags(self, tags, snippet_object):
         """Handle adding tags to snippet object."""
@@ -145,8 +156,9 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
             author=author,
             status=status,
             rating=rating,
-            is_favorite=is_favorite
+            is_favorite=is_favorite,
         )
+        source_code_obj.save()
         snippet_object.source_code = source_code_obj
 
     def _get_latest_id(self):
@@ -156,11 +168,11 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
         except Exception:
             return str('snippet no 1')
 
-    def _create_highlighted(self, source_code_dict):
+    def _create_highlighted(self, source_code_obj):
         """Creates a highlighted snippet"""
 
-        self.title = source_code_dict['title']
-        self.code = source_code_dict['code']
+        self.title = source_code_obj.title
+        self.code = source_code_obj.code
         self.language_name = self.validated_data['language_name']
         self.style = self.validated_data['style']
         self.linenos = self.validated_data['linenos']
@@ -182,10 +194,13 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
         """Create a snippet"""
         user = self.context['request'].user
         tags = validated_data.pop('tags', [])
-        source_code = validated_data.pop('source_code', None)
-        snippet = Snippet.objects.create(**validated_data)
+        source_code = validated_data.pop('source_code')
+        source_code, created = SourceCode.objects.get_or_create(user=user,
+                                                                **source_code)
+        if not created:
+            source_code.save()
+        snippet = Snippet.objects.create(user=user, source_code=source_code)
         self._get_or_create_tags(tags, snippet)
-        self._get_or_create_source_code(source_code, snippet)
         snippet.highlighted = self._create_highlighted(source_code)
         snippet.user = user
 

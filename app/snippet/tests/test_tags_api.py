@@ -11,11 +11,11 @@ from core.models import Tag
 from snippet.serializers import TagSerializer
 
 
-TAGS_URL = reverse('snippet:tag-list')
+TAGS_URL = reverse('snippet:tag-list')   # api/snippet/tags
 
 
 def detail_url(tag_id):
-    """Return url for a snippet"""
+    """Return url for tag."""
     return reverse('snippet:tag-detail', args=[tag_id])
 
 

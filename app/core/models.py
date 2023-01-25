@@ -58,35 +58,42 @@ class Tag(models.Model):
 class SourceCode(models.Model):
     """Model to store detailed information for snippet source code."""
 
-    todo_statuses = (
+    todo_statuses = [
         ('C', 'Checked'),
         ('U', 'Unchecked')
-    )
+    ]
 
-    rating_choices = (
+    rating_choices = [
         (1, 'poor'),
         (2, 'Fair'),
         (3, 'Good'),
         (4, 'Very Good'),
         (5, 'Excellent')
-    )
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
 
-    title = models.CharField(max_length=255, blank=True)
-    author = models.CharField(max_length=255, blank=True)
-    code = models.TextField(unique=True, blank=True)
-    notes = models.TextField(blank=True)
-    url = models.URLField(max_length=255, blank=True)
+    title = models.CharField(max_length=255, null=True, blank=True)
+    author = models.CharField(max_length=255, default='Unknown')
+    code = models.TextField(unique=True)
+    notes = models.TextField(default="Notes not added!")
+    url = models.URLField(max_length=255, default="http://example.com")
     status = models.CharField(max_length=1, choices=todo_statuses, default='U')
     rating = models.PositiveIntegerField(choices=rating_choices, default=3)
     is_favorite = models.BooleanField(default=False)
     count_updated = models.PositiveIntegerField(default=0)
-    created = models.DateTimeField(blank=True)
-    modified = models.DateTimeField(blank=True)
+    created = models.DateTimeField()
+    modified = models.DateTimeField()
+
+    def settitle(self):
+        try:
+            row_no = SourceCode.objects.filter(user=self.user).count()
+            return f"title {row_no+1}"
+        except Exception:
+            return 'title 1'
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -94,6 +101,12 @@ class SourceCode(models.Model):
         self.modified = timezone.now()
 
         self.count_updated = self.count_updated + 1
+
+        if not self.code:
+            raise ValueError('The code content is required')
+        if not self.title:
+            self.title = self.settitle()
+
         super(SourceCode, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -122,14 +135,14 @@ class Snippet(models.Model):
         max_length=100,
     )
     linenos = models.BooleanField(default=False)
-    highlighted = models.TextField(blank=True)
+    highlighted = models.TextField()
     source_code = models.OneToOneField(
         SourceCode,
         on_delete=models.CASCADE,
-        blank=True,
-        null=True
+        null=True,
+        blank=True
     )
-    tags = models.ManyToManyField(Tag, blank=True)
+    tags = models.ManyToManyField(Tag)
 
     def save(self, *args, **kwargs):
         lang_choice = self.language_name
@@ -142,4 +155,4 @@ class Snippet(models.Model):
         super(Snippet, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"Snippet {self.id}"
+        return f"snippet {self.id}"

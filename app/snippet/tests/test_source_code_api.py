@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.models import SourceCode
-# from snippet.serializers import SourceCodeSerializer
 from snippet.serializers import SourceCodeBriefSerializer
 
 
@@ -79,7 +78,9 @@ class PrivateSourceApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
 
     def test_sources_limited_to_user(self):
-        """Test list of sources is limited to authenticated user."""
+        """
+        Test list of source codes is limited to authenticated user.
+        """
         user2 = create_user(email='user2@example.com')
         source_code_1 = create_source_code(user=self.user)
         create_source_code(user=user2, code='code for user2')
@@ -90,3 +91,30 @@ class PrivateSourceApiTests(TestCase):
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]['title'], source_code_1.title)
         self.assertEqual(res.data[0]['id'], source_code_1.id)
+
+    def test_update_source_code(self):
+        """
+        Test updating a surce code.
+        """
+        sc = create_source_code(user=self.user, code="first test code")
+        payload = {
+            "code": "second test code"
+        }
+        url = detail_url(sc.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        sc.refresh_from_db()
+        self.assertEqual(sc.code, payload['code'])
+
+    def test_delete_source_code(self):
+        """
+        Test deleting a surce code.
+        """
+        sc = create_source_code(user=self.user, code="code to be deleted")
+        url = detail_url(sc.id)
+        res = self.client.delete(url)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        sc = SourceCode.objects.filter(user=self.user)
+        self.assertFalse(sc.exists())

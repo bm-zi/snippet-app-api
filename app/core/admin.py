@@ -44,7 +44,15 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+class SourceCodeAdmin(admin.ModelAdmin):
+    """
+    Define the admin page for source code model.
+    Providing field names that cannot be editted in admin page.
+    """
+    readonly_fields = ('count_updated', 'created', 'modified')
+
+
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Snippet)
 admin.site.register(models.Tag)
-admin.site.register(models.SourceCode)
+admin.site.register(models.SourceCode, SourceCodeAdmin)
