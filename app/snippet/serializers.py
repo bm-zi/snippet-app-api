@@ -17,8 +17,8 @@ from core.models import (
 class SourceCodeSerializer(serializers.ModelSerializer):
     """Serializer for source code details."""
     # title = serializers.CharField(default="Title not set!")
-    notes = serializers.CharField(allow_null=True)
-    url = serializers.URLField(allow_null=True)
+    notes = serializers.CharField(default="", allow_null=True)
+    url = serializers.URLField(default="", allow_null=True)
 
     class Meta:
         model = SourceCode
@@ -76,8 +76,6 @@ class SnippetSerializer(serializers.ModelSerializer):
 
 class SnippetDetailSerializer(serializers.ModelSerializer):
     """Serializer for snippet detail view."""
-    # current_user = serializers.SerializerMethodField('_user')
-
     language_name = serializers.CharField(default='python')
     style = serializers.CharField(default='default')
     linenos = serializers.BooleanField(default=False)
@@ -161,16 +159,8 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
         source_code_obj.save()
         snippet_object.source_code = source_code_obj
 
-    def _get_latest_id(self):
-        try:
-            row_no = Snippet.objects.filter(user=self.request.user).count()
-            return f"snippet no {row_no+1}"
-        except Exception:
-            return str('snippet no 1')
-
     def _create_highlighted(self, source_code_obj):
         """Creates a highlighted snippet"""
-
         self.title = source_code_obj.title
         self.code = source_code_obj.code
         self.language_name = self.validated_data['language_name']
@@ -201,6 +191,9 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
             source_code.save()
         snippet = Snippet.objects.create(user=user, source_code=source_code)
         self._get_or_create_tags(tags, snippet)
+        snippet.language_name = validated_data['language_name']
+        snippet.style = validated_data['style']
+        snippet.linenos = validated_data['linenos']
         snippet.highlighted = self._create_highlighted(source_code)
         snippet.user = user
 

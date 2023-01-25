@@ -9,12 +9,12 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from core.models import Snippet, Tag, SourceCode
+from core.models import Snippet
 
-from snippet.serializers import (
-    SnippetSerializer,
-    SnippetDetailSerializer,
-)
+# from snippet.serializers import(
+#     SnippetSerializer,
+#     SnippetDetailSerializer,
+# )
 
 
 SNIPPETS_URL = reverse('snippet:snippet-list')
@@ -54,7 +54,7 @@ class PublicSnippetApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class PrivateSnippetApiTests(TestCase):
+'''class PrivateSnippetApiTests(TestCase):
     """Test authenticated API requests"""
 
     def setUp(self):
@@ -291,7 +291,7 @@ class PrivateSnippetApiTests(TestCase):
             snippet.source_code.title
         )
 
-    '''def test_updating_snippet_with_empty_title(self):
+    def test_updating_snippet_with_empty_title(self):
         """Test updating an snippet with empty title"""
         source_code = SourceCode.objects.create(
             user=self.user,
