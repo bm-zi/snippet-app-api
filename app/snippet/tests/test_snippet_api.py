@@ -11,10 +11,10 @@ from rest_framework import status
 
 from core.models import Snippet
 
-# from snippet.serializers import(
-#     SnippetSerializer,
-#     SnippetDetailSerializer,
-# )
+from snippet.serializers import (
+    SnippetSerializer,
+    SnippetDetailSerializer,
+)
 
 
 SNIPPETS_URL = reverse('snippet:snippet-list')
@@ -54,7 +54,7 @@ class PublicSnippetApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-'''class PrivateSnippetApiTests(TestCase):
+class PrivateSnippetApiTests(TestCase):
     """Test authenticated API requests"""
 
     def setUp(self):
@@ -97,24 +97,39 @@ class PublicSnippetApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
 
     def test_create_snippet(self):
-        """Test creating a snippet."""
+        """Test creating a full snippet."""
         payload = {
-            "user": self.user,
-            "language_name": "java",
-            "style": "default",
-            "linenos": True,
+            "language_name": "python",
+            "style": "colorful",
+            "linenos": False,
+            "highlighted": "",
+            "source_code": {
+                "title": "my first code snippet",
+                "author": "bm-zi",
+                "code": "print('Hello world')",
+                "notes": "no notes",
+                "url": "http://example.com/first_code",
+                "status": "C",
+                "rating": 1
+            },
+            "tags": [{
+                "name": "Django Rest Framework"
+            }]
         }
-        res = self.client.post(SNIPPETS_URL, payload)
+        res = self.client.post(SNIPPETS_URL, payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
         snippet = Snippet.objects.get(id=res.data['id'])
         for k, v in payload.items():
-            if not k == 'highlighted':
+            if not k == 'user' and \
+               not k == 'highlighted' and \
+               not k == 'source_code' and \
+               not k == 'tags':
                 self.assertEqual(getattr(snippet, k), v)
 
         self.assertEqual(snippet.user, self.user)
 
-    def test_partial_update(self):
+    '''def test_partial_update(self):
         """Test partial update of a snippet"""
 
         snippet = create_snippet(

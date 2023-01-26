@@ -1,7 +1,6 @@
 """
 Views for the snippet APIs
 """
-
 from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework import viewsets, mixins
@@ -75,5 +74,4 @@ class SourceCodeViewSet(mixins.RetrieveModelMixin,
         """Return the serializer class for request."""
         if self.action == 'list':
             return serializers.SourceCodeBriefSerializer
-
         return self.serializer_class

@@ -177,7 +177,6 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
             **options
         )
         self.highlighted = highlight(self.code, lexer, formatter)
-
         return self.highlighted
 
     def create(self, validated_data):

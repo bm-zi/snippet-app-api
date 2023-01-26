@@ -99,14 +99,12 @@ class SourceCode(models.Model):
         if not self.id:
             self.created = timezone.now()
         self.modified = timezone.now()
-
-        self.count_updated = self.count_updated + 1
-
         if not self.code:
-            raise ValueError('The code content is required')
+            raise ValueError('code content is required')
         if not self.title:
             self.title = self.settitle()
 
+        self.count_updated = self.count_updated + 1
         super(SourceCode, self).save(*args, **kwargs)
 
     def __str__(self):
