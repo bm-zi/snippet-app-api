@@ -32,7 +32,12 @@ class SnippetViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            SourceCode.objects.filter(id=instance.source_code.id).delete()
+            # source_code_exists = SourceCode.objects.filter(
+            #     id=instance.source_code).exists()
+            # if source_code_exists:
+            if instance.source_code:
+                SourceCode.objects.get(
+                    id=instance.source_code.id).delete()
             self.perform_destroy(instance)
         except Http404:
             pass

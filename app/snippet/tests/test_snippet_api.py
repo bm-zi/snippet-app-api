@@ -129,7 +129,7 @@ class PrivateSnippetApiTests(TestCase):
 
         self.assertEqual(snippet.user, self.user)
 
-    '''def test_partial_update(self):
+    def test_partial_update(self):
         """Test partial update of a snippet"""
 
         snippet = create_snippet(
@@ -195,12 +195,16 @@ class PrivateSnippetApiTests(TestCase):
         new_user = create_user(email='user2@example.com', password='test123')
         snippet = create_snippet(user=new_user)
         url = detail_url(snippet.id)
+        self.client.logout()
+        other_user = create_user(email='other_user@example.com',
+                                 password='test123')
+        self.client.login(user=other_user)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertTrue(Snippet.objects.filter(id=snippet.id).exists())
 
-    def test_create_snippet_with_new_tags(self):
+    '''def test_create_snippet_with_new_tags(self):
         """Test creating snippet with a new tags."""
         payload = {
             'language_name': "ada",
