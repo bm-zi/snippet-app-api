@@ -159,10 +159,16 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
         source_code_obj.save()
         snippet_object.source_code = source_code_obj
 
-    def _create_highlighted(self, source_code_obj):
+    def _create_highlighted(self, source_code_obj=None):
         """Creates a highlighted snippet"""
-        self.title = source_code_obj.title
-        self.code = source_code_obj.code
+        if source_code_obj and hasattr(source_code_obj, 'title'):
+            self.title = source_code_obj.title
+        else:
+            self.title = ''
+        if source_code_obj and hasattr(source_code_obj, 'code'):
+            self.code = source_code_obj.code
+        else:
+            self.code = ''
         self.language_name = self.validated_data['language_name']
         self.style = self.validated_data['style']
         self.linenos = self.validated_data['linenos']
@@ -183,18 +189,36 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
         """Create a snippet"""
         user = self.context['request'].user
         tags = validated_data.pop('tags', [])
-        source_code = validated_data.pop('source_code')
-        source_code, created = SourceCode.objects.get_or_create(user=user,
-                                                                **source_code)
-        if not created:
-            source_code.save()
-        snippet = Snippet.objects.create(user=user, source_code=source_code)
-        self._get_or_create_tags(tags, snippet)
-        snippet.language_name = validated_data['language_name']
-        snippet.style = validated_data['style']
-        snippet.linenos = validated_data['linenos']
-        snippet.highlighted = self._create_highlighted(source_code)
-        snippet.user = user
+        source_code = validated_data.pop('source_code', None)
+
+        if source_code:
+            source_code, created = SourceCode.objects.get_or_create(
+                user=user,
+                **source_code
+            )
+            if not created:
+                source_code.save()
+
+            snippet = Snippet.objects.create(
+                user=user,
+                source_code=source_code
+            )
+
+            self._get_or_create_tags(tags, snippet)
+            snippet.language_name = validated_data['language_name']
+            snippet.style = validated_data['style']
+            snippet.linenos = validated_data['linenos']
+            snippet.highlighted = self._create_highlighted(source_code)
+            snippet.user = user
+
+        else:
+            snippet = Snippet.objects.create(user=user)
+            self._get_or_create_tags(tags, snippet)
+            snippet.language_name = validated_data['language_name']
+            snippet.style = validated_data['style']
+            snippet.linenos = validated_data['linenos']
+            snippet.highlighted = self._create_highlighted(source_code)
+            snippet.user = user
 
         snippet.save()
         return snippet

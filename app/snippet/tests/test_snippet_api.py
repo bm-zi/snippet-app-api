@@ -9,7 +9,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from core.models import Snippet
+from core.models import Snippet, Tag, SourceCode
 
 from snippet.serializers import (
     SnippetSerializer,
@@ -204,7 +204,7 @@ class PrivateSnippetApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertTrue(Snippet.objects.filter(id=snippet.id).exists())
 
-    '''def test_create_snippet_with_new_tags(self):
+    def test_create_snippet_with_new_tags(self):
         """Test creating snippet with a new tags."""
         payload = {
             'language_name': "ada",
@@ -354,14 +354,24 @@ class PrivateSnippetApiTests(TestCase):
         )
 
     def test_creating_multiple_snippets_with_no_title(self):
-        """Test creating multiple snippets with no title"""
-        source_code = SourceCode.objects.create(user=self.user, title='')
-        snippet3 = create_snippet(user=self.user, source_code=source_code)
-        test_string = snippet3.title
+        """
+        Test creating multiple snippets with no title.
+        Automatically a title is created if title is empty.
+        """
+        source_code1 = SourceCode.objects.create(
+            user=self.user,
+            title='',
+            code='test code 1'
+        )
+        snippet1 = create_snippet(user=self.user, source_code=source_code1)
+        test_string = snippet1.source_code.title
         no = [int(i) for i in test_string.split() if i.isdigit()][0]
+        self.assertEqual(snippet1.source_code.title, f'title {no}')
 
-        snippet4 = create_snippet(user=self.user, source_code=source_code)
-        self.assertEqual(snippet4.title, f'Snippet no {no+1}')
-
-        snippet5 = create_snippet(user=self.user, source_code=source_code)
-        self.assertEqual(snippet5.source_code.title, f'Snippe {no+1}')'''
+        source_code2 = SourceCode.objects.create(
+            user=self.user,
+            title='',
+            code='test code 2'
+        )
+        snippet2 = create_snippet(user=self.user, source_code=source_code2)
+        self.assertEqual(snippet2.source_code.title, f'title {no+1}')
