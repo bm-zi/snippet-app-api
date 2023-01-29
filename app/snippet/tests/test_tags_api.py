@@ -7,7 +7,10 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.urls import reverse
-from core.models import Tag
+from core.models import (
+    Tag,
+    Snippet,
+)
 from snippet.serializers import TagSerializer
 
 
@@ -90,3 +93,39 @@ class PrivateTagsApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         tags = Tag.objects.filter(user=self.user)
         self.assertFalse(tags.exists())
+
+    def test_filter_tags_assigned_to_recipes(self):
+        """Test listing tags to those assigned to snippets."""
+        tag1 = Tag.objects.create(user=self.user, name='Breakfast')
+        tag2 = Tag.objects.create(user=self.user, name='Lunch')
+        snippet = Snippet.objects.create(
+            language_name='python',
+            user=self.user,
+        )
+        snippet.tags.add(tag1)
+
+        res = self.client.get(TAGS_URL, {'assigned_only': 1})
+
+        s1 = TagSerializer(tag1)
+        s2 = TagSerializer(tag2)
+        self.assertIn(s1.data, res.data)
+        self.assertNotIn(s2.data, res.data)
+
+    def test_filtered_tags_unique(self):
+        """Test filtered tags returns a unique list."""
+        tag = Tag.objects.create(user=self.user, name='Breakfast')
+        Tag.objects.create(user=self.user, name='Dinner')
+        snippet1 = Snippet.objects.create(
+            language_name='python',
+            user=self.user,
+        )
+        snippet2 = Snippet.objects.create(
+            language_name='java',
+            user=self.user,
+        )
+        snippet1.tags.add(tag)
+        snippet2.tags.add(tag)
+
+        res = self.client.get(TAGS_URL, {'assigned_only': 1})
+
+        self.assertEqual(len(res.data), 1)

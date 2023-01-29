@@ -1,6 +1,13 @@
 """
 Views for the snippet APIs
 """
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+)
+
 from rest_framework import (
     authentication,
     permissions,
@@ -16,6 +23,17 @@ from snippet import serializers
 from django.http import Http404
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'tags',
+                OpenApiTypes.STR,
+                description='Comma separated list of tag IDs to filter',
+            ),
+        ]
+    )
+)
 class SnippetViewSet(viewsets.ModelViewSet):
     """View for manage snippet APIs."""
     serializer_class = serializers.SnippetDetailSerializer
@@ -23,9 +41,22 @@ class SnippetViewSet(viewsets.ModelViewSet):
     authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def _params_to_ints(self, qs):
+        """Convert a list of strings to integers."""
+        return [int(str_id) for str_id in qs.split(',')]
+
     def get_queryset(self):
         """Retrieve snippets for authenticated user."""
-        return self.queryset.filter(user=self.request.user).order_by('-id')
+        # return self.queryset.filter(user=self.request.user).order_by('-id')
+        tags = self.request.query_params.get('tags')
+        queryset = self.queryset
+        if tags:
+            tag_ids = self._params_to_ints(tags)
+            queryset = queryset.filter(tags__id__in=tag_ids)
+
+        return queryset.filter(
+            user=self.request.user
+        ).order_by('-id').distinct()
 
     def get_serializer_class(self):
         """Return the serializer class for request."""
@@ -65,32 +96,40 @@ class SnippetViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TagViewSet(mixins.RetrieveModelMixin,
-                 mixins.UpdateModelMixin,
-                 mixins.DestroyModelMixin,
-                 mixins.ListModelMixin,
-                 viewsets.GenericViewSet):
+class BaseSnippetAttrViewSet(mixins.RetrieveModelMixin,
+                             mixins.UpdateModelMixin,
+                             mixins.DestroyModelMixin,
+                             mixins.ListModelMixin,
+                             viewsets.GenericViewSet):
+    """Base viewset for recipe attributes."""
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class TagViewSet(BaseSnippetAttrViewSet):
     """Manage tags in the database."""
     serializer_class = serializers.TagSerializer
     queryset = Tag.objects.all()
-    authentication_classes = [authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """Filter queryset to authenticated user."""
-        return self.queryset.filter(user=self.request.user).order_by('-id')
+        # return self.queryset.filter(user=self.request.user).order_by('-id')
+        assigned_only = bool(
+            int(self.request.query_params.get('assigned_only', 0))
+        )
+        queryset = self.queryset
+        if assigned_only:
+            queryset = queryset.filter(snippet__isnull=False)
+
+        return queryset.filter(
+            user=self.request.user
+        ).order_by('-name').distinct()
 
 
-class SourceCodeViewSet(mixins.RetrieveModelMixin,
-                        mixins.UpdateModelMixin,
-                        mixins.DestroyModelMixin,
-                        mixins.ListModelMixin,
-                        viewsets.GenericViewSet):
+class SourceCodeViewSet(BaseSnippetAttrViewSet):
     """Manage sources in the database."""
     serializer_class = serializers.SourceCodeSerializer
     queryset = SourceCode.objects.all()
-    authentication_classes = [authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """Retrieve source code for authenticated user."""
