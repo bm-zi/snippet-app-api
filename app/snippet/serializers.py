@@ -87,7 +87,7 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
         model = Snippet
         fields = [
             'id', 'language_name', 'style', 'linenos',
-            'highlighted', 'tags', 'source_code',
+            'highlighted', 'tags', 'source_code', 'image',
         ]
         read_only_fields = ['id', 'highlighted']
 
@@ -242,3 +242,13 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class SnippetImageSerializer(serializers.ModelSerializer):
+    """Serializer for uploading images to snippet."""
+
+    class Meta:
+        model = Snippet
+        fields = ['id', 'image']
+        read_only_fields = ['id']
+        extra_kwargs = {'image': {'required': 'True'}}

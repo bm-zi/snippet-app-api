@@ -1,6 +1,8 @@
 """
 Tests for snippet APIs
 """
+import tempfile
+import os
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -16,8 +18,14 @@ from snippet.serializers import (
     SnippetDetailSerializer,
 )
 
+from PIL import Image
 
 SNIPPETS_URL = reverse('snippet:snippet-list')
+
+
+def image_upload_url(snippet_id):
+    """Create and return an image upload URL."""
+    return reverse('snippet:snippet-upload-image', args=[snippet_id])
 
 
 def detail_url(snippet_id):
@@ -375,3 +383,42 @@ class PrivateSnippetApiTests(TestCase):
         )
         snippet2 = create_snippet(user=self.user, source_code=source_code2)
         self.assertEqual(snippet2.source_code.title, f'title {no+1}')
+
+
+class ImageUploadTests(TestCase):
+    """Tests for the image upload API."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            'user@example.com',
+            'password123',
+        )
+        self.client.force_authenticate(self.user)
+        self.snippet = create_snippet(user=self.user)
+
+    def tearDown(self):
+        self.snippet.image.delete()
+
+    def test_upload_image(self):
+        """Test uploading an image to a snippet."""
+        url = image_upload_url(self.snippet.id)
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as image_file:
+            img = Image.new('RGB', (10, 10))
+            img.save(image_file, format='JPEG')
+            image_file.seek(0)
+            payload = {'image': image_file}
+            res = self.client.post(url, payload, format='multipart')
+
+        self.snippet.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.snippet.image.path))
+
+    def test_upload_image_bad_request(self):
+        """Test uploading an invalid image."""
+        url = image_upload_url(self.snippet.id)
+        payload = {'image': 'notanimage'}
+        res = self.client.post(url, payload, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

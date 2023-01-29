@@ -1,3 +1,6 @@
+import uuid
+import os
+
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -9,6 +12,14 @@ from django.utils import timezone
 
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
+
+
+def snippet_image_file_path(instance, filename):
+    """Generates fie path for new snippet image."""
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+
+    return os.path.join('uploads', 'snippet', filename)
 
 
 class UserManager(BaseUserManager):
@@ -140,6 +151,7 @@ class Snippet(models.Model):
         null=True,
         blank=True
     )
+    image = models.ImageField(null=True, upload_to=snippet_image_file_path)
     tags = models.ManyToManyField(Tag)
 
     def save(self, *args, **kwargs):

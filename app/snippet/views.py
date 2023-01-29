@@ -1,14 +1,19 @@
 """
 Views for the snippet APIs
 """
-from rest_framework import authentication
-from rest_framework import permissions
-from rest_framework import viewsets, mixins
+from rest_framework import (
+    authentication,
+    permissions,
+    viewsets,
+    mixins,
+    status
+)
+from rest_framework.response import Response
+from rest_framework.decorators import action
+
 from core.models import Snippet, Tag, SourceCode
 from snippet import serializers
 from django.http import Http404
-from rest_framework.response import Response
-from rest_framework import status
 
 
 class SnippetViewSet(viewsets.ModelViewSet):
@@ -26,15 +31,31 @@ class SnippetViewSet(viewsets.ModelViewSet):
         """Return the serializer class for request."""
         if self.action == 'list':
             return serializers.SnippetSerializer
+        elif self.action == 'upload_image':
+            return serializers.SnippetImageSerializer
 
         return self.serializer_class
+
+    def perform_create(self, serializer):
+        """Create a new Snippet."""
+        serializer.save(user=self.request.user)
+
+    @action(methods=['POST'], detail=True, url_path='upload-image')
+    def upload_image(self, request, pk=None):
+        """Upload an image to snippet."""
+        snippet = self.get_object()
+        serializer = self.get_serializer(snippet, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            # source_code_exists = SourceCode.objects.filter(
-            #     id=instance.source_code).exists()
-            # if source_code_exists:
             if instance.source_code:
                 SourceCode.objects.get(
                     id=instance.source_code.id).delete()
