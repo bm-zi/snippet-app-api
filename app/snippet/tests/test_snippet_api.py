@@ -110,7 +110,6 @@ class PrivateSnippetApiTests(TestCase):
             "language_name": "python",
             "style": "colorful",
             "linenos": False,
-            "highlighted": "",
             "source_code": {
                 "title": "my first code snippet",
                 "author": "bm-zi",

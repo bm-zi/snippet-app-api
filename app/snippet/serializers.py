@@ -78,7 +78,8 @@ class SnippetDetailSerializer(serializers.ModelSerializer):
     """Serializer for snippet detail view."""
     language_name = serializers.CharField(default='python')
     style = serializers.CharField(default='default')
-    linenos = serializers.BooleanField(default=False)
+    linenos = serializers.BooleanField(default=True)
+    highlighted = serializers.CharField(default='')
 
     tags = TagSerializer(many=True, required=False)
     source_code = SourceCodeSerializer(required=False)

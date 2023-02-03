@@ -110,6 +110,7 @@ class SourceCode(models.Model):
         if not self.id:
             self.created = timezone.now()
         self.modified = timezone.now()
+
         if not self.code:
             raise ValueError('code content is required')
         if not self.title:

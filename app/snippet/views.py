@@ -47,7 +47,6 @@ class SnippetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Retrieve snippets for authenticated user."""
-        # return self.queryset.filter(user=self.request.user).order_by('-id')
         tags = self.request.query_params.get('tags')
         queryset = self.queryset
         if tags:
@@ -67,9 +66,10 @@ class SnippetViewSet(viewsets.ModelViewSet):
 
         return self.serializer_class
 
-    def perform_create(self, serializer):
-        """Create a new Snippet."""
-        serializer.save(user=self.request.user)
+    # def perform_create(self, serializer):
+    #     """Create a new Snippet."""
+    #     if serializer.is_valid():
+    #         serializer.save(user=self.request.user)
 
     @action(methods=['POST'], detail=True, url_path='upload-image')
     def upload_image(self, request, pk=None):
@@ -85,6 +85,7 @@ class SnippetViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
+        """Delete snippet and source code related to snippet."""
         try:
             instance = self.get_object()
             if instance.source_code:
